@@ -264,16 +264,15 @@ public struct ShadcnDock: View {
         }
         .padding(metrics.padding)
         .background(alignment: frameAlignment) { bar }
-        .onContinuousHover(coordinateSpace: .named(Self.space)) { phase in
-            switch phase {
-            case .active(let location):
+        .shadcnOnContinuousHover(coordinateSpaceName: Self.space) { location in
+            if let location {
                 let x = location.x - (containerWidth - restWidth) / 2
                 if pointer == nil {
                     withAnimation(.easeOut(duration: 0.12)) { pointer = x }
                 } else {
                     pointer = x
                 }
-            case .ended:
+            } else {
                 withAnimation(.easeOut(duration: 0.18)) { pointer = nil }
             }
         }
@@ -363,8 +362,8 @@ public struct ShadcnDock: View {
         .focusable()
         .focusEffectDisabled()
         .focused($focusedID, equals: item.id)
-        .onKeyPress(.return) { item.action(); return .handled }
-        .onKeyPress(.space) { item.action(); return .handled }
+        .shadcnOnKeyPress(.returnKey) { item.action(); return .handled }
+        .shadcnOnKeyPress(.space) { item.action(); return .handled }
         .accessibilityElement()
         .accessibilityLabel(item.title)
         .accessibilityValue(accessibilityValue(item))

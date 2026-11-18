@@ -35,6 +35,24 @@ extension View {
         #endif
     }
 
+    /// Continuous pointer tracking in a named coordinate space. No-op on watchOS.
+    @ViewBuilder
+    func shadcnOnContinuousHover(
+        coordinateSpaceName: String,
+        perform action: @escaping (CGPoint?) -> Void
+    ) -> some View {
+        #if os(watchOS)
+        self
+        #else
+        onContinuousHover(coordinateSpace: .named(coordinateSpaceName)) { phase in
+            switch phase {
+            case .active(let location): action(location)
+            case .ended: action(nil)
+            }
+        }
+        #endif
+    }
+
     /// Escape / cancel keyboard shortcut. No-op on watchOS.
     @ViewBuilder
     func shadcnCancelKeyboardShortcut() -> some View {
@@ -67,7 +85,7 @@ extension View {
 /// Keys we wire for desktop/iPad keyboard paths — avoids naming
 /// `KeyEquivalent` in signatures that must exist on watchOS.
 enum ShadcnKeyPress: Sendable {
-    case upArrow, downArrow, leftArrow, rightArrow, space, tab, escape
+    case upArrow, downArrow, leftArrow, rightArrow, returnKey, space, tab, escape
 
     #if !os(watchOS)
     var keyEquivalent: KeyEquivalent {
@@ -76,6 +94,7 @@ enum ShadcnKeyPress: Sendable {
         case .downArrow: .downArrow
         case .leftArrow: .leftArrow
         case .rightArrow: .rightArrow
+        case .returnKey: .return
         case .space: .space
         case .tab: .tab
         case .escape: .escape
