@@ -4,29 +4,47 @@ import SwiftUI
 ///
 /// Section padding is horizontal-only because the card supplies the vertical
 /// padding, exactly as shadcn's `py-6` + `px-6` split does.
+///
+/// Watch / 紧凑布局可传入更小的 `verticalPadding` / `contentSpacing` 覆盖默认值。
 public struct ShadcnCard<Content: View>: View {
     private let content: Content
+    private let verticalPadding: CGFloat
+    private let contentSpacing: CGFloat
 
     @Environment(\.shadcnPalette) private var palette
     @Environment(\.shadcnTheme) private var theme
 
-    public init(@ViewBuilder content: () -> Content) {
+    public init(
+        verticalPadding: CGFloat = Space.x6,
+        contentSpacing: CGFloat = Space.x6,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.verticalPadding = verticalPadding
+        self.contentSpacing = contentSpacing
         self.content = content()
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: Space.x6) {
+        VStack(alignment: .leading, spacing: contentSpacing) {
             content
         }
-        .padding(.vertical, Space.x6)
+        .padding(.vertical, verticalPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             ShadcnTranslucentFill(
                 color: palette.card, cornerRadius: theme.radius.xl)
         )
-        .shadcnBorder(palette.border, cornerRadius: theme.radius.xl)
+        .shadcnBorder(
+            palette.border,
+            width: theme.borderWidth,
+            cornerRadius: theme.radius.xl
+        )
         .foregroundStyle(palette.cardForeground)
-        .shadcnShadow(.sm)
+        .shadcnElevation(
+            theme.chrome.surfaceElevation,
+            hardShadow: theme.hardShadow,
+            color: palette.border,
+            cornerRadius: theme.radius.xl)
     }
 }
 
@@ -97,19 +115,29 @@ public struct ShadcnCardDescription: View {
 }
 
 /// `px-6` body section.
+///
+/// 默认水平 `Space.x6`；手表等窄屏可传入更小的 `horizontalPadding`。
 public struct ShadcnCardContent<Content: View>: View {
     private let content: Content
+    private let horizontalPadding: CGFloat
+    private let spacing: CGFloat
 
-    public init(@ViewBuilder content: () -> Content) {
+    public init(
+        horizontalPadding: CGFloat = Space.x6,
+        spacing: CGFloat = Space.x4,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.horizontalPadding = horizontalPadding
+        self.spacing = spacing
         self.content = content()
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: Space.x4) {
+        VStack(alignment: .leading, spacing: spacing) {
             content
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, Space.x6)
+        .padding(.horizontal, horizontalPadding)
     }
 }
 

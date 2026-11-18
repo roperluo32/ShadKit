@@ -245,10 +245,10 @@ public struct ShadcnCommand: View {
                 .font(theme.typography.sans(theme.typography.sm))
                 .focused($isFieldFocused)
                 .onSubmit { selectHighlighted() }
-                .onKeyPress(.downArrow) { moveHighlight(by: 1); return .handled }
-                .onKeyPress(.upArrow) { moveHighlight(by: -1); return .handled }
-                .onKeyPress(.tab) { selectHighlighted(); return .handled }
-                .onKeyPress(.escape) {
+                .shadcnOnKeyPress(.downArrow) { moveHighlight(by: 1); return .handled }
+                .shadcnOnKeyPress(.upArrow) { moveHighlight(by: -1); return .handled }
+                .shadcnOnKeyPress(.tab) { selectHighlighted(); return .handled }
+                .shadcnOnKeyPress(.escape) {
                     guard let onEscape else { return .ignored }
                     onEscape()
                     return .handled
@@ -313,19 +313,18 @@ public struct ShadcnCommand: View {
         }
         .buttonStyle(.plain)
         .id(item.id)
-        .onContinuousHover { phase in
-            switch phase {
-            case .active(let location):
-                // Only a real pointer move updates the highlight — comparing
-                // the reported location filters out the phantom `.active`
-                // AppKit re-delivers when the list relayouts under a
-                // stationary cursor after an arrow-key move.
-                if let lastHoverLocation, lastHoverLocation == location { return }
-                lastHoverLocation = location
-                setHighlighted(item.id)
-            case .ended:
+        .shadcnOnContinuousHover { location in
+            // Only a real pointer move updates the highlight — comparing
+            // the reported location filters out the phantom `.active`
+            // AppKit re-delivers when the list relayouts under a
+            // stationary cursor after an arrow-key move.
+            guard let location else {
                 lastHoverLocation = nil
+                return
             }
+            if let lastHoverLocation, lastHoverLocation == location { return }
+            lastHoverLocation = location
+            setHighlighted(item.id)
         }
     }
 

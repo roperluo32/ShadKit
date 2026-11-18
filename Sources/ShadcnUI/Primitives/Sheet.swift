@@ -42,7 +42,7 @@ struct ShadcnSheetModifier<SheetContent: View>: ViewModifier {
                         Button("") {
                             withAnimation(.easeOut(duration: 0.15)) { isPresented = false }
                         }
-                        .keyboardShortcut(.cancelAction)
+                        .shadcnCancelKeyboardShortcut()
                         .opacity(0)
                         .allowsHitTesting(false)
                         .accessibilityHidden(true)

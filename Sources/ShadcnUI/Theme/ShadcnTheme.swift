@@ -171,30 +171,91 @@ public struct ShadcnShadow: Sendable {
     public static let lg = ShadcnShadow(color: .black.opacity(0.10), radius: 7.5, y: 5)
     /// `shadow-xl` — `0 20px 25px -5px rgb(0 0 0 / 0.1)`.
     public static let xl = ShadcnShadow(color: .black.opacity(0.10), radius: 12.5, y: 10)
+
+    /// Zero-blur offset shadow — neobrutalism's `Npx Npx 0 0 <color>`.
+    public static func hard(
+        color: Color,
+        x: CGFloat = ShadcnHardShadow.defaultOffset,
+        y: CGFloat = ShadcnHardShadow.defaultOffset
+    ) -> ShadcnShadow {
+        ShadcnShadow(color: color, radius: 0, x: x, y: y)
+    }
 }
 
 /// Everything a component needs to render: colours for both appearances, plus
 /// the radius and type scales.
+///
+/// Assembly rules:
+/// - `radius` defaults to `chrome.preferredRadius` when omitted
+/// - `hardShadow` lives on `chrome`; Theme only forwards it
+/// - `typography` stays independent of chrome (orthogonal axis)
 public struct ShadcnTheme: Sendable {
     public var light: ShadcnPaletteSpec
     public var dark: ShadcnPaletteSpec
+    /// Effective corner scale used by components.
     public var radius: ShadcnRadius
     public var typography: ShadcnTypography
+    public var chrome: ShadcnChromeSpec
 
     public init(
         light: ShadcnPaletteSpec = .neutralLight,
         dark: ShadcnPaletteSpec = .neutralDark,
-        radius: ShadcnRadius = ShadcnRadius(),
-        typography: ShadcnTypography = ShadcnTypography()
+        radius: ShadcnRadius? = nil,
+        typography: ShadcnTypography = ShadcnTypography(),
+        chrome: ShadcnChromeSpec = .default
     ) {
         self.light = light
         self.dark = dark
-        self.radius = radius
+        self.radius = radius ?? chrome.preferredRadius
         self.typography = typography
+        self.chrome = chrome
     }
 
     /// The stock shadcn look: `new-york` style on the `neutral` base colour.
     public static let `default` = ShadcnTheme()
+
+    /// tweakcn / neobrutalism.dev: vivid palette, 5pt radius, hard-shadow chrome.
+    public static func neoBrutalism(
+        light: ShadcnPaletteSpec = .neoBrutalismLight,
+        dark: ShadcnPaletteSpec = .neoBrutalismDark,
+        typography: ShadcnTypography = ShadcnTypography()
+    ) -> ShadcnTheme {
+        ShadcnTheme(
+            light: light,
+            dark: dark,
+            typography: typography,
+            chrome: .brutal
+        )
+    }
+
+    /// True when this theme uses the built-in brutal chrome recipe.
+    /// Prefer reading `chrome` tokens in components; this is for demos / pickers.
+    public var isBrutal: Bool { chrome == .brutal }
+
+    public var borderWidth: CGFloat { chrome.borderWidth }
+
+    /// Hard-elevation offset — forwarded from `chrome.hardShadow`.
+    public var hardShadow: ShadcnHardShadow { chrome.hardShadow }
+
+    /// Idle field border colour (`input` vs always `border`).
+    public func fieldStrokeColor(_ palette: ShadcnPalette) -> Color {
+        switch chrome.fieldStroke {
+        case .input: palette.input
+        case .border: palette.border
+        }
+    }
+
+    /// Stroke for controls that are borderless under soft chrome.
+    public func emphasizedStrokeColor(
+        _ palette: ShadcnPalette,
+        softFallback: Color = .clear
+    ) -> Color {
+        chrome.emphasizesControlStroke ? palette.border : softFallback
+    }
+
+    public var emphasizedStrokeWidth: CGFloat {
+        chrome.emphasizesControlStroke ? chrome.borderWidth : 0
+    }
 
     public func palette(for scheme: ColorScheme) -> ShadcnPalette {
         scheme == .dark ? dark.resolved(isDark: true) : light.resolved(isDark: false)

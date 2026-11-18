@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 /// The five base colours shadcn ships.
 ///
@@ -365,12 +366,21 @@ public struct ShadcnBaseColor: Identifiable, Sendable, Hashable {
     public let name: String
     public let light: ShadcnPaletteSpec
     public let dark: ShadcnPaletteSpec
+    /// Default chrome recipe for this preset (most stay `.default`; neo-brutalism → `.brutal`).
+    public let chrome: ShadcnChromeSpec
 
-    public init(id: String, name: String, light: ShadcnPaletteSpec, dark: ShadcnPaletteSpec) {
+    public init(
+        id: String,
+        name: String,
+        light: ShadcnPaletteSpec,
+        dark: ShadcnPaletteSpec,
+        chrome: ShadcnChromeSpec = .default
+    ) {
         self.id = id
         self.name = name
         self.light = light
         self.dark = dark
+        self.chrome = chrome
     }
 
     public static func == (lhs: ShadcnBaseColor, rhs: ShadcnBaseColor) -> Bool { lhs.id == rhs.id }
@@ -387,12 +397,33 @@ public struct ShadcnBaseColor: Identifiable, Sendable, Hashable {
     public static let slate = ShadcnBaseColor(
         id: "slate", name: "Slate", light: .slateLight, dark: .slateDark)
 
-    public static let all: [ShadcnBaseColor] = [.neutral, .zinc, .stone, .gray, .slate]
+    /// Greyscale shadcn bases — subtle shifts only.
+    public static let greyscale: [ShadcnBaseColor] = [
+        .neutral, .zinc, .stone, .gray, .slate,
+    ]
+
+    /// Greyscale bases plus vivid tweakcn-style presets (`ThemePresets.swift`).
+    public static var all: [ShadcnBaseColor] { greyscale + vivid }
+
+    /// Gallery picker order: Neutral, then strong-accent presets.
+    public static var gallery: [ShadcnBaseColor] { [.neutral] + vivid }
 
     /// Falls back to neutral for an unknown or missing identifier.
     public static func named(_ id: String?) -> ShadcnBaseColor {
         all.first { $0.id == id } ?? .neutral
     }
 
-    public var theme: ShadcnTheme { ShadcnTheme(light: light, dark: dark) }
+    /// Palette plus this preset's preferred chrome (radius from `chrome.preferredRadius`).
+    public var theme: ShadcnTheme {
+        ShadcnTheme(light: light, dark: dark, chrome: chrome)
+    }
+
+    /// True when this preset's default chrome is the brutal recipe.
+    public var prefersBrutalChrome: Bool { chrome == .brutal }
+
+    /// Four chips for a tweakcn-style theme picker row / trigger.
+    public func previewSwatches(for scheme: ColorScheme) -> [Color] {
+        let palette = theme.palette(for: scheme)
+        return [palette.primary, palette.accent, palette.secondary, palette.background]
+    }
 }

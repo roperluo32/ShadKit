@@ -43,45 +43,125 @@ public struct ShadcnTextField: View {
     }
 
     public var body: some View {
-        ZStack(alignment: .leading) {
+        #if os(watchOS)
+        watchBody
+        #else
+        standardBody
+        #endif
+    }
+
+    /// macOS / iOS — translucent fill + optional AppKit field.
+    private var standardBody: some View {
+        let corner = theme.radius.md
+        let fillColor = palette.isDark ? palette.input : palette.background
+        let shape = RoundedRectangle(cornerRadius: corner, style: .continuous)
+
+        return ZStack(alignment: .leading) {
             if text.isEmpty {
                 Text(placeholder)
                     .foregroundStyle(palette.mutedForeground)
                     .allowsHitTesting(false)
             }
-            field
+            standardField
         }
         .font(theme.typography.sans(theme.typography.sm))
         .foregroundStyle(palette.foreground)
         .padding(.horizontal, Space.x3)
         .frame(height: 36)
         .background(
-            ShadcnTranslucentFill(
-                color: palette.isDark ? palette.input : palette.background,
-                cornerRadius: theme.radius.md)
+            ShadcnTranslucentFill(color: fillColor, cornerRadius: corner)
         )
         .shadcnBorder(
-            isFocused ? palette.ring : palette.input,
-            cornerRadius: theme.radius.md
+            isFocused ? palette.ring : theme.fieldStrokeColor(palette),
+            width: theme.borderWidth,
+            cornerRadius: corner
         )
-        .shadcnFocusRing(isFocused, palette: palette, cornerRadius: theme.radius.md)
-        .shadcnShadow(.xs)
+        .shadcnFocusRing(isFocused, palette: palette, cornerRadius: corner)
+        .shadcnElevation(
+            theme.chrome.controlElevation,
+            hardShadow: theme.hardShadow,
+            color: palette.border,
+            cornerRadius: corner)
         .opacity(isEnabled ? 1 : 0.5)
         .animation(.easeOut(duration: 0.12), value: isFocused)
-        .contentShape(Rectangle())
+        .contentShape(shape)
         .onTapGesture { isFocused = true }
-        .onAppear {
-            guard autofocus else { return }
-            // A field inside a floating panel appears before the panel is key,
-            // and focus requested then is dropped; ask again once it is.
-            for delay in [0.0, 0.15, 0.4] {
-                DispatchQueue.main.asyncAfter(deadline: .now() + delay) { isFocused = true }
+        .onAppear(perform: requestAutofocusIfNeeded)
+    }
+
+    /// watchOS paints an indelible system plate inside `TextField` even with
+    /// `.plain`, which never lines up with our stroke. Draw chrome ourselves
+    /// and keep an invisible field only for focus / text entry.
+    private var watchBody: some View {
+        let corner = theme.radius.md
+        let fillColor = palette.isDark ? palette.input : palette.background
+        let shape = RoundedRectangle(cornerRadius: corner, style: .continuous)
+        let display = text.isEmpty
+            ? placeholder
+            : (isSecure ? String(repeating: "•", count: text.count) : text)
+        let displayColor = text.isEmpty ? palette.mutedForeground : palette.foreground
+
+        return Text(display)
+            .font(theme.typography.sans(theme.typography.sm))
+            .foregroundStyle(displayColor)
+            .lineLimit(1)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Space.x3)
+            .frame(height: 36)
+            .background(shape.fill(fillColor))
+            .clipShape(shape)
+            .overlay(
+                shape
+                    .inset(by: theme.borderWidth / 2)
+                    .stroke(
+                        isFocused
+                            ? palette.ring
+                            : theme.fieldStrokeColor(palette),
+                        lineWidth: theme.borderWidth
+                    )
+            )
+            // Invisible field must receive the tap itself — watchOS only opens
+            // text input from a direct TextField hit, not from FocusState alone.
+            // Do not add an outer onTapGesture; it steals the touch.
+            .overlay {
+                Group {
+                    if isSecure {
+                        SecureField("", text: $text)
+                    } else {
+                        TextField("", text: $text)
+                    }
+                }
+                .textFieldStyle(.plain)
+                .focused($isFocused)
+                .onSubmit { onSubmit?() }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+                // Keep a tiny opacity so hit-testing stays enabled; 0 can drop
+                // taps on watchOS while still hiding the system plate.
+                .opacity(0.02)
+                .allowsHitTesting(isEnabled)
+                .accessibilityLabel(placeholder)
             }
+            .shadcnElevation(
+                theme.chrome.controlElevation.hardOrNone,
+                hardShadow: theme.hardShadow,
+                color: palette.border,
+                cornerRadius: corner)
+            .opacity(isEnabled ? 1 : 0.5)
+            .onAppear(perform: requestAutofocusIfNeeded)
+    }
+
+    private func requestAutofocusIfNeeded() {
+        guard autofocus else { return }
+        // A field inside a floating panel appears before the panel is key,
+        // and focus requested then is dropped; ask again once it is.
+        for delay in [0.0, 0.15, 0.4] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { isFocused = true }
         }
     }
 
     @ViewBuilder
-    private var field: some View {
+    private var standardField: some View {
         #if canImport(AppKit)
         ShadcnAppKitTextField(
             placeholder: "",
@@ -106,12 +186,12 @@ public struct ShadcnTextField: View {
         .textFieldStyle(.plain)
         .focused($isFocused)
         .onSubmit { onSubmit?() }
-        .onKeyPress(.upArrow) {
+        .shadcnOnKeyPress(.upArrow) {
             guard let onMoveUp else { return .ignored }
             onMoveUp()
             return .handled
         }
-        .onKeyPress(.downArrow) {
+        .shadcnOnKeyPress(.downArrow) {
             guard let onMoveDown else { return .ignored }
             onMoveDown()
             return .handled
@@ -163,11 +243,16 @@ public struct ShadcnTextEditor: View {
                 .fill(palette.isDark ? palette.input.opacity(0.3) : Color.clear)
         )
         .shadcnBorder(
-            isFocused ? palette.ring : palette.input,
+            isFocused ? palette.ring : theme.fieldStrokeColor(palette),
+            width: theme.borderWidth,
             cornerRadius: theme.radius.md
         )
         .shadcnFocusRing(isFocused, palette: palette, cornerRadius: theme.radius.md)
-        .shadcnShadow(.xs)
+        .shadcnElevation(
+            theme.chrome.controlElevation,
+            hardShadow: theme.hardShadow,
+            color: palette.border,
+            cornerRadius: theme.radius.md)
         .opacity(isEnabled ? 1 : 0.5)
         .animation(.easeOut(duration: 0.12), value: isFocused)
     }
@@ -285,6 +370,20 @@ public struct ShadcnPlainTextEditor: View {
             },
             onSubmit: onSubmit
         )
+        #elseif os(watchOS)
+        // watchOS has no TextEditor — fall back to a single-line field.
+        Group {
+            if let focus {
+                TextField("", text: $text)
+                    .focused(focus)
+            } else {
+                TextField("", text: $text)
+            }
+        }
+        .textFieldStyle(.plain)
+        .font(resolvedFont)
+        .foregroundStyle(textColor ?? palette.foreground)
+        .onSubmit { onSubmit?() }
         #else
         if let focus {
             TextEditor(text: $text)

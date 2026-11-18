@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:ShadKit}",
+            "name": "Debug ShadKitDemo",
+            "target": "ShadKitDemo",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug ShadKitDemo"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:ShadKit}",
+            "name": "Release ShadKitDemo",
+            "target": "ShadKitDemo",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release ShadKitDemo"
+        }
+    ]
+}
