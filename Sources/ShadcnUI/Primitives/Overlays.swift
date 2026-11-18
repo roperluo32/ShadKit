@@ -140,9 +140,11 @@ struct ShadcnTooltipModifier: ViewModifier {
     func body(content: Content) -> some View {
         #if os(macOS)
         content.help(text)
+        #elseif os(watchOS)
+        content.accessibilityHint(text)
         #else
         content
-            .onHover { hovering in
+            .shadcnOnHover { hovering in
                 isHovering = hovering
                 if hovering {
                     DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
@@ -343,7 +345,7 @@ public struct ShadcnMenuItem: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.shadcnBare)
-        .onHover { isHovering = $0 }
+        .shadcnOnHover { isHovering = $0 }
     }
 
     @ViewBuilder
@@ -956,7 +958,7 @@ struct ShadcnHoverOverlayModifier<Panel: View>: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .onHover { hovering in
+            .shadcnOnHover { hovering in
                 isHoveringTrigger = hovering
                 scheduleVisibilityUpdate()
             }
@@ -976,7 +978,7 @@ struct ShadcnHoverOverlayModifier<Panel: View>: ViewModifier {
                 ShadcnPanel(padding: Space.x4) { panel }
                     .frame(width: width)
                     .fixedSize()
-                    .onHover { hovering in
+                    .shadcnOnHover { hovering in
                         isHoveringPanel = hovering
                         scheduleVisibilityUpdate()
                     }
@@ -1140,7 +1142,7 @@ private struct ShadcnDialogPanel<Content: View>: View {
             Button("") {
                 withAnimation(.easeOut(duration: 0.15)) { isPresented = false }
             }
-            .keyboardShortcut(.cancelAction)
+            .shadcnCancelKeyboardShortcut()
             .opacity(0)
             .allowsHitTesting(false)
             .accessibilityHidden(true)

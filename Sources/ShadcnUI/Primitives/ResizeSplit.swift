@@ -1,11 +1,14 @@
 import SwiftUI
 
+#if !os(watchOS)
 /// Two panes with a drag handle, mirroring `resize-split.tsx`: the leading
 /// pane resizes between `minWidth`/`maxWidth`, collapses to zero, and
 /// remembers its width — the host owns persistence via `width`. Double-click
 /// the handle to reset to `defaultWidth`. A window-level collapse shortcut
 /// (⌘B in the source) is opt-in via `collapseShortcut`, since a host may
 /// already bind that letter, or may not want a global shortcut at all.
+///
+/// Unavailable on watchOS — dual-pane resize is not a watch layout.
 public struct ShadcnResizeSplit<Sidebar: View, Content: View>: View {
     @Binding private var width: CGFloat
     private let defaultWidth: CGFloat
@@ -139,3 +142,4 @@ public struct ShadcnResizeSplit<Sidebar: View, Content: View>: View {
         withAnimation(.easeOut(duration: 0.15)) { isCollapsed.wrappedValue.toggle() }
     }
 }
+#endif

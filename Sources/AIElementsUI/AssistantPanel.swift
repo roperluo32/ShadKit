@@ -278,12 +278,13 @@ public final class AIAssistantPanelModel: ObservableObject {
 
     /// Bumped on any visible change so the conversation stays pinned.
     public var streamToken: Int {
-        messages.count &* 100_000
-            &+ (streamingText?.count ?? 0)
-            &+ (isThinking ? 1 : 0)
-            &+ queued.count
-            &+ queued.filter(\.isRunning).count
-            &+ tools.count
+        let messagePart = messages.count &* 100_000
+        let streamPart = streamingText?.count ?? 0
+        let thinkingPart = isThinking ? 1 : 0
+        let queuedPart = queued.count
+        let runningPart = queued.filter(\.isRunning).count
+        let toolsPart = tools.count
+        return messagePart &+ streamPart &+ thinkingPart &+ queuedPart &+ runningPart &+ toolsPart
     }
 
     /// The same signal, split so the conversation can tell a growing live tail

@@ -27,6 +27,7 @@ public struct ShadcnSwitch: View {
     private let size: ShadcnSwitchSize
 
     @Environment(\.shadcnPalette) private var palette
+    @Environment(\.shadcnTheme) private var theme
     @Environment(\.isEnabled) private var isEnabled
 
     public init(isOn: Binding<Bool>, size: ShadcnSwitchSize = .medium) {
@@ -49,8 +50,9 @@ public struct ShadcnSwitch: View {
     public var body: some View {
         let inset = (size.track.height - size.thumb) / 2
         let travel = size.track.width - size.thumb - inset * 2
+        let shape = Capsule(style: .continuous)
 
-        Capsule()
+        shape
             .fill(trackColor)
             .frame(width: size.track.width, height: size.track.height)
             .overlay(alignment: .leading) {
@@ -60,9 +62,18 @@ public struct ShadcnSwitch: View {
                     .padding(.leading, inset)
                     .offset(x: isOn ? travel : 0)
             }
-            .shadcnShadow(.xs)
+            .overlay(
+                shape.strokeBorder(
+                    theme.emphasizedStrokeColor(palette),
+                    lineWidth: theme.emphasizedStrokeWidth)
+            )
+            .shadcnElevation(
+                theme.chrome.controlElevation,
+                hardShadow: theme.hardShadow,
+                color: palette.border,
+                cornerRadius: theme.radius.full)
             .opacity(isEnabled ? 1 : 0.5)
-            .contentShape(Capsule())
+            .contentShape(shape)
             .onTapGesture {
                 guard isEnabled else { return }
                 withAnimation(.easeOut(duration: 0.18)) { isOn.toggle() }
@@ -78,7 +89,7 @@ public struct ShadcnSwitch: View {
                 withAnimation(.easeOut(duration: 0.18)) { isOn.toggle() }
             }
             .focusable()
-            .onKeyPress(.space) {
+            .shadcnOnKeyPress(.space) {
                 guard isEnabled else { return .ignored }
                 withAnimation(.easeOut(duration: 0.18)) { isOn.toggle() }
                 return .handled
@@ -94,6 +105,7 @@ public struct ShadcnCheckbox: View {
     @Binding private var isChecked: Bool
 
     @Environment(\.shadcnPalette) private var palette
+    @Environment(\.shadcnTheme) private var theme
     @Environment(\.isEnabled) private var isEnabled
 
     public init(isChecked: Binding<Bool>) {
@@ -101,14 +113,16 @@ public struct ShadcnCheckbox: View {
     }
 
     public var body: some View {
-        RoundedRectangle(cornerRadius: 4, style: .continuous)
+        let corner: CGFloat = theme.chrome.checkboxUsesThemeRadius ? theme.radius.sm : 4
+        let shape = RoundedRectangle(cornerRadius: corner, style: .continuous)
+        let softStroke = isChecked ? palette.primary : palette.input
+        let stroke = theme.emphasizedStrokeColor(palette, softFallback: softStroke)
+
+        shape
             .fill(isChecked ? palette.primary : (palette.isDark ? palette.input.opacity(0.3) : .clear))
             .frame(width: 16, height: 16)
-            .overlay(
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .strokeBorder(isChecked ? palette.primary : palette.input, lineWidth: 1)
-            )
-            .shadcnDarkOutline(RoundedRectangle(cornerRadius: 4, style: .continuous))
+            .overlay(shape.strokeBorder(stroke, lineWidth: theme.borderWidth))
+            .shadcnDarkOutline(shape)
             .overlay {
                 if isChecked {
                     Image(systemName: ShadcnIcon.check)
@@ -116,7 +130,11 @@ public struct ShadcnCheckbox: View {
                         .foregroundStyle(palette.primaryForeground)
                 }
             }
-            .shadcnShadow(.xs)
+            .shadcnElevation(
+                theme.chrome.controlElevation,
+                hardShadow: theme.hardShadow,
+                color: palette.border,
+                cornerRadius: corner)
             .opacity(isEnabled ? 1 : 0.5)
             .contentShape(Rectangle())
             .onTapGesture {

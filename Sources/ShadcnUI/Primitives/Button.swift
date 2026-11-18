@@ -169,22 +169,31 @@ private struct ShadcnButtonBody: View {
     @ViewBuilder
     private var background: some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        // Hard-elevation chrome needs an opaque fill so the slab only shows
+        // as the offset strip — translucent glass fills would reveal the whole plate.
+        let opaque = usesElevatedChrome && theme.chrome.prefersOpaqueFills
         switch variant {
         case .primary:
-            shape.fill(palette.primary.opacity(isHot ? 0.9 : 1))
+            shape.fill(palette.primary.opacity(opaque ? 1 : (isHot ? 0.9 : 1)))
         case .destructive:
-            // dark:bg-destructive/60
-            let base = palette.isDark ? palette.destructive.opacity(0.6) : palette.destructive
-            shape.fill(base.opacity(isHot ? 0.9 : 1))
+            if opaque {
+                shape.fill(palette.destructive)
+            } else {
+                // dark:bg-destructive/60
+                let base = palette.isDark ? palette.destructive.opacity(0.6) : palette.destructive
+                shape.fill(base.opacity(isHot ? 0.9 : 1))
+            }
         case .outline:
-            if palette.isDark {
+            if opaque {
+                shape.fill(palette.background)
+            } else if palette.isDark {
                 // dark:bg-input/30 hover:bg-input/50
                 shape.fill(palette.input.opacity(isHot ? 0.5 : 0.3))
             } else {
                 shape.fill(isHot ? palette.accent : palette.background)
             }
         case .secondary:
-            shape.fill(palette.secondary.opacity(isHot ? 0.8 : 1))
+            shape.fill(palette.secondary.opacity(opaque ? 1 : (isHot ? 0.8 : 1)))
         case .ghost:
             // dark:hover:bg-accent/50
             shape.fill(isHot ? palette.accent.opacity(palette.isDark ? 0.5 : 1) : .clear)
@@ -198,6 +207,42 @@ private struct ShadcnButtonBody: View {
         return hasIcon ? size.horizontalPaddingWithIcon : size.horizontalPadding
     }
 
+    /// Hard control elevation applies to filled variants; ghost/link stay flat.
+    /// Soft chrome only elevates outline (matching stock shadcn `shadow-xs`).
+    private var usesElevatedChrome: Bool {
+        guard variant != .ghost && variant != .link else { return false }
+        if theme.chrome.controlElevation.isHard { return true }
+        return variant == .outline
+    }
+
+    /// `hover:translate-x/y + hover:shadow-none` — the control walks into its shadow.
+    private var shadowLifted: Bool {
+        usesElevatedChrome
+            && theme.chrome.pressBehavior == .shiftIntoShadow
+            && theme.chrome.controlElevation.isHard
+            && isEnabled
+            && (isHot || configuration.isPressed)
+    }
+
+    private var outlineBorderColor: Color {
+        if theme.chrome.controlElevation.isHard { return palette.border }
+        return palette.isDark ? palette.input : palette.border
+    }
+
+    private var showsBorder: Bool {
+        theme.chrome.controlElevation.isHard
+            ? (variant != .ghost && variant != .link)
+            : variant == .outline
+    }
+
+    private var pressedOpacity: Double {
+        guard isEnabled else { return 0.5 }
+        if configuration.isPressed && theme.chrome.pressBehavior == .fade {
+            return 0.85
+        }
+        return 1
+    }
+
     var body: some View {
         configuration.label
             .font(font)
@@ -208,19 +253,32 @@ private struct ShadcnButtonBody: View {
             .frame(width: size.isIconOnly ? size.height : nil)
             .frame(maxWidth: fillsWidth ? .infinity : nil)
             .background(background)
-            .applyIf(variant == .outline) { view in
+            .applyIf(showsBorder) { view in
                 view.shadcnBorder(
-                    palette.isDark ? palette.input : palette.border,
+                    outlineBorderColor,
+                    width: theme.borderWidth,
                     cornerRadius: cornerRadius
                 )
             }
-            .applyIf(variant == .outline) { $0.shadcnShadow(.xs) }
             .applyIf(variant == .link && isHot) { $0.underline() }
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            .opacity(isEnabled ? (configuration.isPressed ? 0.85 : 1) : 0.5)
+            // Hard edge is a real offset shape (not shadow(radius:0), which often
+            // draws nothing). Applied after clip so it isn't masked away.
+            .applyIf(usesElevatedChrome && !shadowLifted) {
+                $0.shadcnElevation(
+                    theme.chrome.controlElevation,
+                    hardShadow: theme.hardShadow,
+                    color: palette.border,
+                    cornerRadius: cornerRadius)
+            }
+            .offset(
+                x: shadowLifted ? theme.hardShadow.x : 0,
+                y: shadowLifted ? theme.hardShadow.y : 0
+            )
+            .opacity(pressedOpacity)
             .environment(\.shadcnIconSize, size.iconSize)
-            .onHover { isHovering = $0 }
+            .shadcnOnHover { isHovering = $0 }
             .animation(.easeOut(duration: 0.12), value: isHovering)
             .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
     }

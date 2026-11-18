@@ -2,7 +2,7 @@
 
 A SwiftUI port of [shadcn/ui](https://ui.shadcn.com) and
 [Vercel AI Elements](https://ai-sdk.dev/elements), built to match the originals
-rather than approximate them. No dependencies — pure SwiftUI, macOS 14+ / iOS 17+.
+rather than approximate them. No dependencies — pure SwiftUI.
 
 Components were ported from the actual registry sources
 (`ui.shadcn.com/r/styles/new-york-v4/*.json` and `registry.ai-sdk.dev`), not from
@@ -12,12 +12,14 @@ carry across.
 
 ## Products
 
-| Library | Contents |
-|---|---|
-| `ShadcnUI` | Design tokens + the shadcn primitives |
-| `AIElementsUI` | The AI Elements set, plus a `useChat`-shaped runtime |
-| `CanvasUI` | Node-graph canvas, ReactFlow-shaped |
-| `AIElementsGallery` | A browsable showcase of everything |
+| Library | Contents | Platforms |
+|---|---|---|
+| `ShadcnUI` | Design tokens + the shadcn primitives | macOS 14+, iOS 17+, watchOS 10+ |
+| `AIElementsUI` | The AI Elements set, plus a `useChat`-shaped runtime | macOS 14+, iOS 17+ |
+| `CanvasUI` | Node-graph canvas, ReactFlow-shaped | macOS 14+, iOS 17+ |
+| `AIElementsGallery` | A browsable showcase of everything | macOS 14+, iOS 17+ |
+
+On watchOS, depend on **`ShadcnUI` only**. Dual-pane `ShadcnResizeSplit` is unavailable there; `ShadcnTextEditor` falls back to a single-line field.
 
 ```swift
 .package(url: "https://github.com/jasonkneen/ShadKit", from: "0.3.0")

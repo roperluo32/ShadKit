@@ -182,13 +182,15 @@ extension View {
     public func shadcnTheme(
         _ theme: ShadcnTheme = .default,
         surfaceOpacity: Double = 1,
-        glass: Bool = true
+        glass: Bool? = nil
     ) -> some View {
         modifier(ShadcnRoot(
             theme: theme,
             paintsBackground: false,
             surfaceOpacity: min(max(surfaceOpacity, 0), 1),
-            glassEnabled: glass))
+            // Hard-edge chrome fights Liquid Glass — default off when the
+            // chrome recipe asks for opaque surfaces.
+            glassEnabled: glass ?? !theme.chrome.prefersGlassOff))
     }
 
     /// Applies the theme *and* paints the `background` token behind the
@@ -196,13 +198,13 @@ extension View {
     public func shadcnSurface(
         _ theme: ShadcnTheme = .default,
         opacity: Double = 1,
-        glass: Bool = true
+        glass: Bool? = nil
     ) -> some View {
         modifier(ShadcnRoot(
             theme: theme,
             paintsBackground: true,
             surfaceOpacity: min(max(opacity, 0), 1),
-            glassEnabled: glass))
+            glassEnabled: glass ?? !theme.chrome.prefersGlassOff))
     }
 }
 
@@ -238,6 +240,68 @@ extension View {
     /// Applies a `ShadcnShadow`.
     public func shadcnShadow(_ shadow: ShadcnShadow) -> some View {
         self.shadow(color: shadow.color, radius: shadow.radius, x: shadow.x, y: shadow.y)
+    }
+
+    /// Neobrutal hard edge — a solid duplicate shape offset behind the view.
+    ///
+    /// Prefer this over `shadcnShadow(.hard(…))`: SwiftUI's `shadow(radius: 0)`
+    /// often draws nothing (or a faint blur), while CSS `Npx Npx 0 0 <color>`
+    /// is an opaque slab. The control's own fill must be opaque so the slab
+    /// only peeks out on the bottom/right.
+    public func shadcnHardEdge(
+        color: Color,
+        x: CGFloat,
+        y: CGFloat,
+        cornerRadius: CGFloat
+    ) -> some View {
+        background {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(color)
+                .offset(x: x, y: y)
+        }
+    }
+
+    public func shadcnHardEdge(
+        _ hardShadow: ShadcnHardShadow,
+        color: Color,
+        cornerRadius: CGFloat
+    ) -> some View {
+        shadcnHardEdge(
+            color: color, x: hardShadow.x, y: hardShadow.y,
+            cornerRadius: cornerRadius)
+    }
+
+    /// Applies a chrome elevation token — soft blur, hard slab, or nothing.
+    @ViewBuilder
+    public func shadcnElevation(
+        _ elevation: ShadcnElevation,
+        hardShadow: ShadcnHardShadow = .default,
+        color: Color,
+        cornerRadius: CGFloat
+    ) -> some View {
+        switch elevation {
+        case .softXS, .softSM, .softMD, .softLG, .softXL:
+            if let level = elevation.softLevel {
+                shadcnShadow(level.shadow)
+            } else {
+                self
+            }
+        case .hard:
+            shadcnHardEdge(hardShadow, color: color, cornerRadius: cornerRadius)
+        case .none:
+            self
+        }
+    }
+
+    /// Reserves space for a hard-edge slab so ScrollView / clips don't crop it.
+    @ViewBuilder
+    public func shadcnHardEdgeClearance(_ theme: ShadcnTheme) -> some View {
+        if theme.chrome.usesHardElevation {
+            padding(.trailing, theme.hardShadow.x)
+                .padding(.bottom, theme.hardShadow.y)
+        } else {
+            self
+        }
     }
 
     /// Rounded-rect border drawn inside the bounds, the way CSS `border` sits.

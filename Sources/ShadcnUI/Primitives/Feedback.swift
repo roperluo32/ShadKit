@@ -7,17 +7,19 @@ public struct ShadcnSeparator: View {
     private let axis: Axis
 
     @Environment(\.shadcnPalette) private var palette
+    @Environment(\.shadcnTheme) private var theme
 
     public init(_ axis: Axis = .horizontal) {
         self.axis = axis
     }
 
     public var body: some View {
+        let thickness = theme.borderWidth
         Rectangle()
             .fill(palette.border)
             .frame(
-                width: axis == .vertical ? 1 : nil,
-                height: axis == .horizontal ? 1 : nil
+                width: axis == .vertical ? thickness : nil,
+                height: axis == .horizontal ? thickness : nil
             )
             .frame(
                 maxWidth: axis == .horizontal ? .infinity : nil,
@@ -68,6 +70,7 @@ public struct ShadcnProgress: View {
     private let value: Double
 
     @Environment(\.shadcnPalette) private var palette
+    @Environment(\.shadcnTheme) private var theme
 
     /// - Parameter value: 0...1. Clamped.
     public init(value: Double) {
@@ -75,15 +78,26 @@ public struct ShadcnProgress: View {
     }
 
     public var body: some View {
+        let shape = Capsule(style: .continuous)
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                Capsule().fill(palette.primary.opacity(0.2))
-                Capsule()
+                shape.fill(palette.primary.opacity(theme.chrome.progressTrackOpacity))
+                shape
                     .fill(palette.primary)
                     .frame(width: geometry.size.width * value)
             }
+            .overlay(
+                shape.strokeBorder(
+                    theme.emphasizedStrokeColor(palette),
+                    lineWidth: theme.emphasizedStrokeWidth)
+            )
         }
-        .frame(height: 8)
+        .frame(height: theme.chrome.progressHeight)
+        .shadcnElevation(
+            theme.chrome.controlElevation.hardOrNone,
+            hardShadow: theme.hardShadow,
+            color: palette.border,
+            cornerRadius: theme.radius.full)
         .animation(.easeOut(duration: 0.2), value: value)
     }
 }
@@ -139,7 +153,16 @@ public struct ShadcnAlert<Content: View>: View {
             ShadcnTranslucentFill(
                 color: palette.card, cornerRadius: theme.radius.lg)
         )
-        .shadcnBorder(palette.border, cornerRadius: theme.radius.lg)
+        .shadcnBorder(
+            palette.border,
+            width: theme.borderWidth,
+            cornerRadius: theme.radius.lg
+        )
+        .shadcnElevation(
+            theme.chrome.surfaceElevation.hardOrNone,
+            hardShadow: theme.hardShadow,
+            color: palette.border,
+            cornerRadius: theme.radius.lg)
         .environment(\.shadcnAlertVariant, variant)
     }
 }
@@ -268,5 +291,15 @@ public struct ShadcnAvatar: View {
         }
         .frame(width: size.dimension, height: size.dimension)
         .clipShape(Circle())
+        .overlay(
+            Circle().strokeBorder(
+                theme.emphasizedStrokeColor(palette),
+                lineWidth: theme.emphasizedStrokeWidth)
+        )
+        .shadcnElevation(
+            theme.chrome.controlElevation.hardOrNone,
+            hardShadow: theme.hardShadow,
+            color: palette.border,
+            cornerRadius: theme.radius.full)
     }
 }

@@ -85,12 +85,12 @@ public struct ShadcnSlider: View {
         .focusable()
         .focused($isFocused)
         .focusEffectDisabled()
-        .onKeyPress(.leftArrow) {
+        .shadcnOnKeyPress(.leftArrow) {
             guard isEnabled else { return .ignored }
             adjust(by: -(step ?? (range.upperBound - range.lowerBound) / 20))
             return .handled
         }
-        .onKeyPress(.rightArrow) {
+        .shadcnOnKeyPress(.rightArrow) {
             guard isEnabled else { return .ignored }
             adjust(by: step ?? (range.upperBound - range.lowerBound) / 20)
             return .handled

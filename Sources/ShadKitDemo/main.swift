@@ -38,6 +38,15 @@ final class DemoAppDelegate: NSObject, NSApplicationDelegate {
         }
         let opacity = value(for: "--opacity").flatMap(Double.init).map { min(max($0, 0), 1) }
             ?? 0.45
+        // `--theme neo-brutalism` picks the tweakcn palette and hard-shadow chrome.
+        // `--chrome brutal|soft` overrides chrome independently of the palette.
+        let baseColor = ShadcnBaseColor.named(value(for: "--theme"))
+        let chrome: ShadcnChromeSpec? = switch value(for: "--chrome") {
+        case "brutal": .brutal
+        case "soft", "default": .default
+        default: nil
+        }
+        let resolvedChrome = chrome ?? baseColor.chrome
 
         if let scheme {
             window.appearance = NSAppearance(
@@ -48,7 +57,11 @@ final class DemoAppDelegate: NSObject, NSApplicationDelegate {
             ShadcnAIGallery(
                 initialSection: section,
                 scheme: scheme,
-                surfaceOpacity: opacity),
+                surfaceOpacity: opacity,
+                // Hard edges fight frosted glass; default glass off when chrome asks.
+                glass: resolvedChrome.prefersGlassOff ? false : true,
+                baseColor: baseColor,
+                chrome: chrome),
             in: window
         )
         window.center()

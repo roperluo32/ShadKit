@@ -53,6 +53,10 @@ public struct ShadcnBadge<Content: View>: View {
     }
 
     public var body: some View {
+        let shape = Capsule(style: .continuous)
+        let stroke = theme.emphasizedStrokeColor(palette, softFallback: borderColor)
+        let line = theme.chrome.emphasizesControlStroke ? theme.borderWidth : 1
+
         HStack(spacing: Space.x1) {
             content
         }
@@ -61,14 +65,15 @@ public struct ShadcnBadge<Content: View>: View {
         .lineLimit(1)
         .padding(.horizontal, Space.x2)
         .padding(.vertical, Space.x0_5)
-        .background(
-            Capsule(style: .continuous).fill(background)
-        )
-        .overlay(
-            Capsule(style: .continuous).strokeBorder(borderColor, lineWidth: 1)
-        )
-        .clipShape(Capsule(style: .continuous))
-        .shadcnDarkOutline(Capsule(style: .continuous))
+        .background(shape.fill(background))
+        .overlay(shape.strokeBorder(stroke, lineWidth: line))
+        .clipShape(shape)
+        .shadcnDarkOutline(shape)
+        .shadcnElevation(
+            theme.chrome.controlElevation.hardOrNone,
+            hardShadow: theme.hardShadow,
+            color: palette.border,
+            cornerRadius: theme.radius.full)
         .environment(\.shadcnIconSize, 12)
         .fixedSize(horizontal: true, vertical: false)
     }
